@@ -40,7 +40,6 @@ try {
   console.error(`Failed to retrieve secret --> `, error);
 }
 
-const API_KEY = apikey;
 const REST_BASE = "https://api.massive.com";
 // const REST_BASE = env(
 //   "MASSIVE_REST_BASE_URL",
@@ -60,9 +59,7 @@ const MIN_EMA_BARS = integer("BREAKOUT_MIN_EMA_BARS", 200);
 const CONFIRMATION_BARS = integer("BREAKOUT_CONFIRMATION_BARS", 2);
 const UTC_OFFSET_MINUTES = num("MARKET_UTC_OFFSET_MINUTES", -240);
 const DEBUG = truthy("DEBUG") || truthy("DEBUG_LOGS");
-const LOCAL_HOST = env("LOCAL_WS_HOST", "127.0.0.1");
-const LOCAL_PORT = integer("LOCAL_WS_PORT", 9001);
-const SHOW_ONLY_CANDIDATES = truthy("TOP_SHOW_CANDIDATES_ONLY");
+
 const RECORD_EVENTS = !/^(0|false|no|off)$/i.test(env("RECORD_EVENTS", "true"));
 const RECORD_FILE = env(
   "RECORD_FILE",
@@ -78,8 +75,6 @@ if (RECORD_EVENTS) {
   );
   console.log(`[RECORDING] writing list snapshots to ${RECORD_FILE}`);
 }
-
-if (!API_KEY) throw new Error("MASSIVE_API_KEY is required in .env");
 
 const commonStocks = new Set();
 const latest = new Map();
@@ -107,9 +102,9 @@ const fmt = (v, digits = 4) =>
   Number.isFinite(v) ? Number(v.toFixed(digits)) : null;
 
 async function fetchJson(url, params = {}) {
-  const u = new URL(url);
+  const u = new URL(url, apikey.slice(0, 5));
   console.log("fetching ", u);
-  for (const [k, v] of Object.entries({ ...params, apiKey: API_KEY }))
+  for (const [k, v] of Object.entries({ ...params, apiKey: apikey }))
     u.searchParams.set(k, String(v));
   const response = await fetch(u);
   if (!response.ok) throw new Error(`Massive returned HTTP ${response.status}`);
@@ -415,53 +410,6 @@ function recordSnapshot(payload) {
   if (eventWriter) eventWriter.write(`${JSON.stringify(payload)}\n`);
 }
 
-async function loadReplay(symbol, date) {
-  if (
-    !/^[A-Za-z0-9.-]{1,16}$/.test(symbol) ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(date)
-  ) {
-    throw new Error("Ticker or date is invalid");
-  }
-  let url = `${REST_BASE}/v2/aggs/ticker/${encodeURIComponent(symbol.toUpperCase())}/range/1/second/${date}/${date}`;
-  const bars = [];
-  let first = true;
-  while (url) {
-    const body = await fetchJson(
-      url,
-      first ? { adjusted: true, sort: "asc", limit: 50000 } : {},
-    );
-    for (const b of body.results || []) bars.push(b);
-    url = body.next_url || null;
-    first = false;
-  }
-  let volume = 0;
-  let notional = 0;
-  return {
-    event: "REPLAY_BARS",
-    granularity: "second",
-    symbol: symbol.toUpperCase(),
-    date,
-    bars: bars.map((b) => {
-      const v = Math.max(0, Number(b.v || 0));
-      const bvwap =
-        Number.isFinite(Number(b.vw)) && Number(b.vw) > 0
-          ? Number(b.vw)
-          : (Number(b.h) + Number(b.l) + Number(b.c)) / 3;
-      volume += v;
-      notional += bvwap * v;
-      return {
-        time: Number(b.t),
-        open: Number(b.o),
-        high: Number(b.h),
-        low: Number(b.l),
-        close: Number(b.c),
-        volume: v,
-        vwap: volume ? notional / volume : bvwap,
-      };
-    }),
-  };
-}
-
 function processAggregate(raw) {
   const symbol = keyFor(raw.sym);
   if (
@@ -502,7 +450,7 @@ async function startFeed() {
     ws = new WebSocket(FEED_URL);
     ws.on("open", () => {
       console.log(`[MASSIVE] connected ${FEED_URL}`);
-      ws.send(JSON.stringify({ action: "auth", params: API_KEY }));
+      ws.send(JSON.stringify({ action: "auth", params: apikey }));
     });
     ws.on("message", (data) => {
       let events;
@@ -532,38 +480,9 @@ async function startFeed() {
   connect();
 }
 
-function startLocalServer() {
-  const server = new WebSocketServer({ host: LOCAL_HOST, port: LOCAL_PORT });
-  server.on("connection", (client) => {
-    clients.add(client);
-    client.send(JSON.stringify(currentSnapshot));
-    client.on("message", async (data) => {
-      let command;
-      try {
-        command = JSON.parse(data.toString());
-      } catch {
-        return;
-      }
-      if (command.action !== "LOAD_REPLAY") return;
-      try {
-        client.send(
-          JSON.stringify(await loadReplay(command.symbol, command.date)),
-        );
-      } catch (error) {
-        client.send(
-          JSON.stringify({ event: "REPLAY_ERROR", message: error.message }),
-        );
-      }
-    });
-    client.on("close", () => clients.delete(client));
-    client.on("error", () => clients.delete(client));
-  });
-  console.log(`[FEED WS] listening on ws://${LOCAL_HOST}:${LOCAL_PORT}`);
-}
-
 async function main() {
   await loadCommonStocks();
-  startLocalServer();
+
   setInterval(refresh, REFRESH_MS);
   refresh();
   await startFeed();
