@@ -41,7 +41,7 @@ try {
 }
 
 const API_KEY = apikey;
-console.log("api key is ", API_KEY.slice(0, 5) + "...");
+console.log("api key is ", apikey);
 const REST_BASE = env(
   "MASSIVE_REST_BASE_URL",
   "https://api.massive.com",
