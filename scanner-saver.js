@@ -7,7 +7,7 @@ import {
   GetSecretValueCommand,
 } from "@aws-sdk/client-secrets-manager";
 
-const RUNTIME_MS = 120000; //30 * 60 * 1000; // 30 minutes
+const RUNTIME_MS = 30 * 60 * 1000; // 30 minutes
 
 setTimeout(() => {
   console.log(
