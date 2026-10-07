@@ -39,7 +39,7 @@ try {
 } catch (error) {
   console.error(`Failed to retrieve secret --> `, error);
 }
-console.log(typeof apikey, apikey);
+
 const API_KEY = apikey.MASSIVE_API_KEY;
 
 const REST_BASE = "https://api.massive.com";
@@ -47,8 +47,6 @@ const REST_BASE = "https://api.massive.com";
 //   "MASSIVE_REST_BASE_URL",
 //   "https://api.massive.com",
 // ).replace(/\/$/, "");
-
-console.log("api is ", REST_BASE);
 
 const FEED_URL = "wss://delayed.massive.com/stocks";
 const TOP_COUNT = integer("TOP_STOCK_COUNT", 20);
@@ -233,6 +231,8 @@ class IntradayState {
       m.timestampMs = bar.timestampMs;
       return null;
     }
+    console.log(this.minute);
+
     if (id < this.minute.id) return null;
     const closed = this.finalize(this.minute);
     this.minute = {
@@ -427,14 +427,11 @@ function refresh() {
     watchlist: [],
   };
   recordSnapshot(currentSnapshot);
-  broadcast(currentSnapshot);
+
   if (DEBUG)
     console.log(`[MATCHES] ${matches.map((x) => x.symbol).join(", ")}`);
 }
-function broadcast(payload) {
-  const text = JSON.stringify(payload);
-  for (const c of clients) if (c.readyState === WebSocket.OPEN) c.send(text);
-}
+
 function recordSnapshot(payload) {
   if (eventWriter) eventWriter.write(`${JSON.stringify(payload)}\n`);
 }
