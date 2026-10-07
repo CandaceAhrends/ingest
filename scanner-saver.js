@@ -104,15 +104,42 @@ const fmt = (v, digits = 4) =>
   Number.isFinite(v) ? Number(v.toFixed(digits)) : null;
 
 async function fetchJson(url, params = {}) {
-  const u = new URL(url, API_KEY.slice(0, 5));
-  console.log("fetching ", u);
-  for (const [k, v] of Object.entries({ ...params, apiKey: API_KEY }))
-    u.searchParams.set(k, String(v));
-  const response = await fetch(u);
-  if (!response.ok) throw new Error(`Massive returned HTTP ${response.status}`);
+  // Pass ONLY url to new URL() — never pass API_KEY or params here
+  const u = new URL(url);
+
+  // If params is an object, set query parameters
+  if (typeof params === "object" && params !== null) {
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null) {
+        u.searchParams.set(k, String(v));
+      }
+    }
+  }
+
+  // Ensure apiKey query param is set if not already present
+  if (API_KEY && !u.searchParams.has("apiKey")) {
+    u.searchParams.set("apiKey", API_KEY);
+  }
+
+  console.log("fetching URL:", u.toString());
+
+  const response = await fetch(u, {
+    headers: {
+      Authorization: `Bearer ${API_KEY}`,
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+    throw new Error(`Massive returned HTTP ${response.status}: ${errorText}`);
+  }
+
   const body = await response.json();
-  if (body.status && !["OK", "DELAYED"].includes(body.status))
+  if (body.status && !["OK", "DELAYED"].includes(body.status)) {
     throw new Error(`Massive returned status ${body.status}`);
+  }
+
   return body;
 }
 
