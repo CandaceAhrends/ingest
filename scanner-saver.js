@@ -23,15 +23,21 @@ let apikey = null;
 try {
   const command = new GetSecretValueCommand({ SecretId: "massive-secret" });
   const response = await client.send(command);
-
   if (response.SecretString) {
-    apikey = JSON.parse(response.SecretString);
+    try {
+      apikey = JSON.parse(response.SecretString);
+    } catch {
+      // Return raw string if not JSON formatted
+      apikey = response.SecretString;
+    }
   }
 
-  apikey = Buffer.from(response.SecretBinary, "base64").toString("ascii");
+  if (response.SecretBinary) {
+    const buff = Buffer.from(response.SecretBinary, "base64");
+    apikey = JSON.parse(buff.toString("utf-8"));
+  }
 } catch (error) {
   console.error(`Failed to retrieve secret --> `, error);
-  apikey = env("MASSIVE_API_KEY", "");
 }
 
 const API_KEY = apikey;
