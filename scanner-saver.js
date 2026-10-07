@@ -30,7 +30,7 @@ try {
 
   apikey = Buffer.from(response.SecretBinary, "base64").toString("ascii");
 } catch (error) {
-  console.error(`Failed to retrieve secret ${secretName}:`, error);
+  console.error(`Failed to retrieve secret --> `, error);
   apikey = env("MASSIVE_API_KEY", "");
 }
 
