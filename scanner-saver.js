@@ -39,6 +39,7 @@ try {
 } catch (error) {
   console.error(`Failed to retrieve secret --> `, error);
 }
+console.log(typeof apikey, apikey);
 
 const REST_BASE = "https://api.massive.com";
 // const REST_BASE = env(
