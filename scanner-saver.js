@@ -41,10 +41,14 @@ try {
 }
 
 const API_KEY = apikey;
+console.log("api key is ", API_KEY.slice(0, 5) + "...");
 const REST_BASE = env(
   "MASSIVE_REST_BASE_URL",
   "https://api.massive.com",
 ).replace(/\/$/, "");
+
+console.log("api is ", REST_BASE);
+
 const FEED_URL = env("MASSIVE_WS_BASE_URL", "wss://delayed.massive.com/stocks");
 const TOP_COUNT = integer("TOP_STOCK_COUNT", 20);
 const REFRESH_MS = integer("TOP_REFRESH_SECONDS", 10) * 1000;
