@@ -7,6 +7,16 @@ import {
   GetSecretValueCommand,
 } from "@aws-sdk/client-secrets-manager";
 
+const RUNTIME_MS = 60000; //30 * 60 * 1000; // 30 minutes
+
+setTimeout(() => {
+  console.log(
+    `[SHUTDOWN] Reached 30-minute run limit. Flushing buffers and exiting.`,
+  );
+  // Close file streams, websocket connections, and exit
+  process.exit(0);
+}, RUNTIME_MS);
+
 const env = (name, fallback) => process.env[name] ?? fallback;
 const num = (name, fallback) => {
   const value = Number(process.env[name]);
