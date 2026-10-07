@@ -40,6 +40,7 @@ try {
   console.error(`Failed to retrieve secret --> `, error);
 }
 console.log(typeof apikey, apikey);
+const API_KEY = apikey.MASSIVE_API_KEY;
 
 const REST_BASE = "https://api.massive.com";
 // const REST_BASE = env(
@@ -103,9 +104,9 @@ const fmt = (v, digits = 4) =>
   Number.isFinite(v) ? Number(v.toFixed(digits)) : null;
 
 async function fetchJson(url, params = {}) {
-  const u = new URL(url, apikey.slice(0, 5));
+  const u = new URL(url, API_KEY.slice(0, 5));
   console.log("fetching ", u);
-  for (const [k, v] of Object.entries({ ...params, apiKey: apikey }))
+  for (const [k, v] of Object.entries({ ...params, apiKey: API_KEY }))
     u.searchParams.set(k, String(v));
   const response = await fetch(u);
   if (!response.ok) throw new Error(`Massive returned HTTP ${response.status}`);
@@ -451,7 +452,7 @@ async function startFeed() {
     ws = new WebSocket(FEED_URL);
     ws.on("open", () => {
       console.log(`[MASSIVE] connected ${FEED_URL}`);
-      ws.send(JSON.stringify({ action: "auth", params: apikey }));
+      ws.send(JSON.stringify({ action: "auth", params: API_KEY }));
     });
     ws.on("message", (data) => {
       let events;
