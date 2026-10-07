@@ -41,15 +41,15 @@ try {
 }
 
 const API_KEY = apikey;
-console.log("api key is ", apikey);
-const REST_BASE = env(
-  "MASSIVE_REST_BASE_URL",
-  "https://api.massive.com",
-).replace(/\/$/, "");
+const REST_BASE = "https://api.massive.com";
+// const REST_BASE = env(
+//   "MASSIVE_REST_BASE_URL",
+//   "https://api.massive.com",
+// ).replace(/\/$/, "");
 
 console.log("api is ", REST_BASE);
 
-const FEED_URL = env("MASSIVE_WS_BASE_URL", "wss://delayed.massive.com/stocks");
+const FEED_URL = "wss://delayed.massive.com/stocks";
 const TOP_COUNT = integer("TOP_STOCK_COUNT", 20);
 const REFRESH_MS = integer("TOP_REFRESH_SECONDS", 10) * 1000;
 const MIN_DAY_VOLUME = num("TOP_MIN_DAY_VOLUME", 500_000);
@@ -108,6 +108,7 @@ const fmt = (v, digits = 4) =>
 
 async function fetchJson(url, params = {}) {
   const u = new URL(url);
+  console.log("fetching ", u);
   for (const [k, v] of Object.entries({ ...params, apiKey: API_KEY }))
     u.searchParams.set(k, String(v));
   const response = await fetch(u);
