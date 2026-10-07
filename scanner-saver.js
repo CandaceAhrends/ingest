@@ -2,6 +2,10 @@ import "dotenv/config";
 import WebSocket, { WebSocketServer } from "ws";
 import fs from "node:fs";
 import path from "node:path";
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} from "@aws-sdk/client-secrets-manager";
 
 const env = (name, fallback) => process.env[name] ?? fallback;
 const num = (name, fallback) => {
@@ -12,7 +16,25 @@ const integer = (name, fallback) =>
   Math.max(1, Math.trunc(num(name, fallback)));
 const truthy = (name) => /^(1|true|yes|on)$/i.test(env(name, "false"));
 
-const API_KEY = env("MASSIVE_API_KEY", "");
+const client = new SecretsManagerClient({ region: "us-east-1" });
+
+let apikey = null;
+
+try {
+  const command = new GetSecretValueCommand({ SecretId: "massive-secret" });
+  const response = await client.send(command);
+
+  if (response.SecretString) {
+    return JSON.parse(response.SecretString);
+  }
+
+  apikey = Buffer.from(response.SecretBinary, "base64").toString("ascii");
+} catch (error) {
+  console.error(`Failed to retrieve secret ${secretName}:`, error);
+  apikey = env("MASSIVE_API_KEY", "");
+}
+
+const API_KEY = apikey;
 const REST_BASE = env(
   "MASSIVE_REST_BASE_URL",
   "https://api.massive.com",
