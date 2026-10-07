@@ -25,7 +25,7 @@ try {
   const response = await client.send(command);
 
   if (response.SecretString) {
-    return JSON.parse(response.SecretString);
+    apikey = JSON.parse(response.SecretString);
   }
 
   apikey = Buffer.from(response.SecretBinary, "base64").toString("ascii");
